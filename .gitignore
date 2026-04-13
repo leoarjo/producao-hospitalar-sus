@@ -1,0 +1,31 @@
+# Credenciais — NUNCA subir para o GitHub
+.env
+
+# Ambiente virtual
+venv/
+
+# Arquivos gerados / temporários
+__pycache__/
+*.py[cod]
+*.db
+*.pptx
+~$*
+
+# CSVs brutos do TabNet (grandes, gerados pelo robô)
+dados/quantidade_aprovada.csv
+dados/valor_aprovado.csv
+
+# Scripts de apresentação, captura e relatório
+capturar_telas.py
+apresentacao/
+relatorio/
+
+# Arquivos .bat
+*.bat
+
+# IDE / sistema
+.vscode/
+.idea/
+.claude/
+*.DS_Store
+Thumbs.db
