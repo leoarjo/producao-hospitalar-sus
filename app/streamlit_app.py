@@ -71,6 +71,15 @@ def formatar_br(valor: float, casas: int = 0) -> str:
     formato = f",.{casas}f"
     return f"{valor:{formato}}".replace(",", "X").replace(".", ",").replace("X", ".")
 
+def formatar_kpi(valor: float) -> str:
+    """Abrevia números grandes para bilhões, milhões ou milhares."""
+    if valor >= 1_000_000_000:
+        return f"{valor / 1_000_000_000:.2f} Bi".replace(".", ",")
+    elif valor >= 1_000_000:
+        return f"{valor / 1_000_000:.2f} Mi".replace(".", ",")
+    elif valor >= 1_000:
+        return f"{valor / 1_000:.2f} Mil".replace(".", ",")
+    return str(int(valor))
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -139,15 +148,17 @@ col2.metric(
     help="Municípios com ao menos um procedimento aprovado no período.",
 )
 col3.metric("Subgrupos", str(df["subgrupo_proced"].nunique()))
+
 col4.metric(
     "Qtd. Aprovada Total",
-    formatar_br(df_full["quantidade_aprovada"].sum()),
-    help="Coluna 'Total' do TabNet excluída para evitar dupla contagem.",
+    formatar_kpi(df_full["quantidade_aprovada"].sum()),
+    help=f"Valor exato: {formatar_br(df_full['quantidade_aprovada'].sum())} (Coluna 'Total' excluída para evitar dupla contagem)."
 )
+
 col5.metric(
     "Valor Aprovado Total (R$)",
-    formatar_br(df_full["valor_aprovado"].sum()),
-    help="Coluna 'Total' do TabNet excluída para evitar dupla contagem.",
+    formatar_kpi(df_full["valor_aprovado"].sum()),
+    help=f"Valor exato: R$ {formatar_br(df_full['valor_aprovado'].sum(), 2)} (Coluna 'Total' excluída para evitar dupla contagem)."
 )
 
 st.markdown("---")
@@ -157,7 +168,6 @@ st.markdown("---")
 aba_dados, aba_stats, aba_graficos = st.tabs(
     ["📋 Dados Armazenados", "📊 Estatísticas Descritivas", "📈 Gráficos"]
 )
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ABA 1 — DADOS ARMAZENADOS
