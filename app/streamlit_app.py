@@ -204,8 +204,14 @@ with aba_stats:
     st.subheader("Estatísticas Descritivas")
 
     # ── Resumo geral ──────────────────────────────────────────────────────────
-    st.markdown("#### Resumo Geral das Métricas Numéricas")
-    desc = df[["quantidade_aprovada", "valor_aprovado"]].describe()
+    st.markdown("#### Resumo Geral das Métricas Numéricas (por Município)")
+    
+    # 1. Primeiro agrupamos e somamos os valores por município
+    df_agrupado_mun = df.groupby("municipio_nome")[["quantidade_aprovada", "valor_aprovado"]].sum()
+    
+    # 2. Depois geramos as estatísticas descritivas em cima desses totais
+    desc = df_agrupado_mun.describe()
+    
     desc.index.name = "Estatística"
     desc.columns = ["Qtd. Aprovada", "Valor Aprovado (R$)"]
     st.dataframe(desc.style.format("{:,.2f}"), use_container_width=True)
