@@ -539,3 +539,118 @@ with aba_graficos:
         margin=dict(l=10, r=30, t=10, b=40),
     )
     st.plotly_chart(fig7, use_container_width=True)
+
+# ── Gráfico Extra 1: Gráfico de Pareto (Curva ABC) ────────────────────────
+    st.markdown("#### Curva ABC (Pareto) — Concentração do Valor Aprovado por Subgrupo")
+    st.caption("A linha vermelha mostra o percentual acumulado do orçamento. Descubra quais procedimentos somam 80% dos gastos.")
+    
+    # Prepara os dados: ordena por valor e calcula o % acumulado
+    df_pareto = df_sub_agg.sort_values("valor_aprovado", ascending=False).copy()
+    df_pareto["perc_acumulado"] = df_pareto["valor_aprovado"].cumsum() / df_pareto["valor_aprovado"].sum() * 100
+    
+    # Pega apenas os top 20 para o gráfico não ficar esmagado
+    df_pareto_top = df_pareto.head(20).copy()
+    df_pareto_top["label"] = df_pareto_top["subgrupo_proced"].str[:30] + "..."
+
+    fig_pareto = go.Figure()
+    
+    # Eixo Y primário (Barras de Valor)
+    fig_pareto.add_trace(go.Bar(
+        x=df_pareto_top["label"],
+        y=df_pareto_top["valor_aprovado"],
+        name="Valor Aprovado",
+        marker_color="#1f77b4"
+    ))
+    
+    # Eixo Y secundário (Linha de % Acumulado)
+    fig_pareto.add_trace(go.Scatter(
+        x=df_pareto_top["label"],
+        y=df_pareto_top["perc_acumulado"],
+        name="% Acumulado",
+        mode="lines+markers",
+        marker_color="red",
+        yaxis="y2"
+    ))
+
+    fig_pareto.update_layout(
+        height=550,
+        xaxis_tickangle=-45,
+        yaxis=dict(title="Valor Aprovado (R$)", side="left"),
+        yaxis2=dict(title="% Acumulado", side="right", overlaying="y", range=[0, 105]),
+        showlegend=False,
+        hovermode="x unified",
+        margin=dict(b=100)
+    )
+    st.plotly_chart(fig_pareto, use_container_width=True)
+    st.markdown("---")
+
+# ── Gráfico Extra 2: Ticket Médio por Subgrupo ────────────────────────────
+    st.markdown("#### Custo Unitário Médio (Ticket Médio) por Subgrupo")
+    st.caption("Quais são os procedimentos mais caros por unidade? (Valor Total ÷ Qtd Total)")
+    
+    # Calcula o ticket médio ignorando divisões por zero
+    df_ticket = df_sub_agg[df_sub_agg["quantidade_aprovada"] > 0].copy()
+    df_ticket["ticket_medio"] = df_ticket["valor_aprovado"] / df_ticket["quantidade_aprovada"]
+    
+    # Pega os 15 procedimentos mais caros na média
+    top_tickets = df_ticket.nlargest(15, "ticket_medio").sort_values("ticket_medio", ascending=True)
+    top_tickets["label"] = top_tickets["subgrupo_proced"].str[:40] + "..."
+
+    fig_ticket = px.bar(
+        top_tickets,
+        x="ticket_medio",
+        y="label",
+        orientation="h",
+        labels={"ticket_medio": "Custo Médio (R$)", "label": ""},
+        color="ticket_medio",
+        color_continuous_scale="Reds",
+        height=500,
+        text=top_tickets["ticket_medio"].apply(lambda v: f"R$ {v:,.2f}")
+    )
+    fig_ticket.update_traces(textposition="outside", cliponaxis=False)
+    fig_ticket.update_layout(showlegend=False, coloraxis_showscale=False)
+    
+    st.plotly_chart(fig_ticket, use_container_width=True)
+    st.markdown("---")
+
+# ── Gráfico Extra 3: Sunburst (Hierarquia de UF para Subgrupo) ────────────
+    st.markdown(f"#### Explosão Solar: Participação de UF e Subgrupo ({label_metrica})")
+    st.caption("Gráfico interativo! **Clique em uma UF** para ver a distribuição interna dela.")
+
+    # Cria a coluna UF caso não esteja disponível no escopo atual
+    df_sun = df.copy()
+    df_sun["uf"] = df_sun["municipio_codigo"].str[:2].map(UF_MAP).fillna("Outros")
+    
+    # Agrupa por UF e Subgrupo
+    df_sun_agg = df_sun.groupby(["uf", "subgrupo_proced"])[[metrica]].sum().reset_index()
+    
+    # Remove zeros e filtra um pouco para o gráfico não travar o navegador
+    df_sun_agg = df_sun_agg[df_sun_agg[metrica] > 0]
+    
+    # Para o Sunburst não ficar ilegível, vamos agrupar procedimentos muito pequenos em "Outros"
+    limite = df_sun_agg[metrica].sum() * 0.005 # Corte de 0.5% do total
+    df_sun_agg["subgrupo_curto"] = df_sun_agg.apply(
+        lambda row: row["subgrupo_proced"][:30] + "..." if row[metrica] > limite else "Outros (menores)", axis=1
+    )
+    
+    # Reagrupa com o nome encurtado
+    df_sun_agg = df_sun_agg.groupby(["uf", "subgrupo_curto"])[[metrica]].sum().reset_index()
+
+    fig_sun = px.sunburst(
+        df_sun_agg,
+        path=["uf", "subgrupo_curto"],
+        values=metrica,
+        color="uf",
+        color_discrete_sequence=px.colors.qualitative.Pastel,
+        height=650
+    )
+    
+    fig_sun.update_traces(hovertemplate="<b>%{label}</b><br>Valor: %{value:,.0f}<extra></extra>")
+    fig_sun.update_layout(margin=dict(t=10, l=10, r=10, b=10))
+    
+    st.plotly_chart(fig_sun, use_container_width=True)
+
+
+
+
+
